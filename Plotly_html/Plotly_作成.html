@@ -1,0 +1,89 @@
+<div style="max-width: 960px;border: 1px solid&nbsp;#ccc;margin: 1em auto;padding: 1.5em 1.5em 1.5em 7em;background-color: white;box-shadow: 0 0 10px #ccc"><div style="padding-bottom: .5em;"><div><h1 id="plotly-html-">PlotlyグラフをHTMLファイルとして保存する方法</h1>
+<p>このノートブックでは、Plotlyで作成したグラフをHTMLファイルとして保存する手順をまとめます。</p>
+</div></div><div style="padding-bottom: .5em;"><div><h2 id="1-">1. 必要なライブラリのインポート</h2>
+<p>pandas, plotly.graph_objects, plotly.subplots などをインポートします。</p>
+</div></div><div style="padding-bottom: .5em;"><div style="position: relative;"><span style="display: block;position: absolute;top: 5px;left: -7.5em;width: 7em;font-family: monospace;text-align: right;color: #303fba">In [ ]:</span><pre style="background: #f7f7f7;border: 1px solid #cfcfcf;padding: .4em;margin-bottom: 0;margin-top: 0;border-radius: 2px;min-height: .85em" class=" language-null"><code class=" language-null">import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots</code></pre><div style="margin: 1em 0px 0.5em;"></div></div></div><div style="padding-bottom: .5em;"><div><h2 id="2-">2. データの読み込みと前処理</h2>
+<p>CSVファイルを読み込み、カテゴリ変換や必要な列の加工を行います。</p>
+</div></div><div style="padding-bottom: .5em;"><div style="position: relative;"><span style="display: block;position: absolute;top: 5px;left: -7.5em;width: 7em;font-family: monospace;text-align: right;color: #303fba">In [ ]:</span><pre style="background: #f7f7f7;border: 1px solid #cfcfcf;padding: .4em;margin-bottom: 0;margin-top: 0;border-radius: 2px;min-height: .85em" class=" language-null"><code class=" language-null"># CSVファイルをpandas DataFrameとして読み込む
+df_yasuda = pd.read_csv(r'yasuda\yasuda.csv')
+
+# 'likely_n' を文字列に変換し、カテゴリ順を2,3に限定
+df_yasuda['likely_n_str'] = df_yasuda['likely_n'].astype(str)
+df_yasuda_cat = df_yasuda[df_yasuda['likely_n_str'].isin(['2', '3'])].copy()
+df_yasuda_cat['likely_n_str'] = pd.Categorical(df_yasuda_cat['likely_n_str'], categories=['2', '3'], ordered=True)</code></pre><div style="margin: 1em 0px 0.5em;"></div></div></div><div style="padding-bottom: .5em;"><div><h2 id="3-plotly-2-">3. グラフ作成（Plotlyで2つのサブプロット）</h2>
+<p>make_subplotsで2つのサブプロットを作成し、点の大きさ・色分け・軸範囲・補助線などを設定します。</p>
+</div></div><div style="padding-bottom: .5em;"><div style="position: relative;"><span style="display: block;position: absolute;top: 5px;left: -7.5em;width: 7em;font-family: monospace;text-align: right;color: #303fba">In [ ]:</span><pre style="background: #f7f7f7;border: 1px solid #cfcfcf;padding: .4em;margin-bottom: 0;margin-top: 0;border-radius: 2px;min-height: .85em" class=" language-null"><code class=" language-null"># サブプロット作成（1行2列）
+fig = make_subplots(
+    rows=1, cols=2,
+    subplot_titles=(
+        "User ip vs Auto ip",
+        "Auto 1/n vs Auto ip"
+    )
+)
+
+# 1つ目: user_ip vs likely_ip
+min_val, max_val = 4.8, 6.8
+fig.add_trace(
+    go.Scatter(
+        x=df_yasuda['user_ip'],
+        y=df_yasuda['likely_ip'],
+        mode='markers',
+        marker=dict(color='blue', size=12, opacity=0.8),
+        name='user_ip vs likely_ip',
+        text=df_yasuda['File']
+    ),
+    row=1, col=1
+)
+# 対角線と±0.1線（薄く）
+for offset, color in zip([0, +0.1, -0.1], ['black', 'green', 'green']):
+    fig.add_trace(
+        go.Scatter(
+            x=[min_val, max_val],
+            y=[min_val + offset, max_val + offset],
+            mode='lines',
+            line=dict(color=color, dash='dash', width=1),
+            opacity=0.4,
+            showlegend=False
+        ),
+        row=1, col=1
+    )
+fig.update_xaxes(range=[min_val, max_val], row=1, col=1)
+fig.update_yaxes(range=[min_val, max_val], row=1, col=1)
+
+# 2つ目: likely_n（カテゴリ）vs likely_ip
+fig.add_trace(
+    go.Scatter(
+        x=df_yasuda_cat['likely_n_str'],
+        y=df_yasuda_cat['likely_ip'],
+        mode='markers',
+        marker=dict(color='red', size=12, opacity=0.8),
+        name='likely_n vs likely_ip',
+        text=df_yasuda_cat['File']
+    ),
+    row=1, col=2
+)
+fig.update_xaxes(
+    title_text="1/n", 
+    row=1, col=2, 
+    categoryorder='array', 
+    categoryarray=['2', '3'],
+)
+fig.update_yaxes(
+    title_text="likely_ip", 
+    row=1, col=2, 
+)
+
+# 共通レイアウト
+fig.update_xaxes(title_text="User ip [eV]", row=1, col=1)
+fig.update_yaxes(title_text="Auto ip [eV]", row=1, col=1)
+fig.update_layout(
+    height=500, width=1100,
+    showlegend=False,
+    title_text="OLED data"
+)</code></pre><div style="margin: 1em 0px 0.5em;"></div></div></div><div style="padding-bottom: .5em;"><div><h2 id="4-html-">4. グラフをHTMLファイルとして保存</h2>
+<p><code>fig.write_html('ファイル名.html')</code> でグラフをHTMLファイルとして保存します。</p>
+</div></div><div style="padding-bottom: .5em;"><div style="position: relative;"><span style="display: block;position: absolute;top: 5px;left: -7.5em;width: 7em;font-family: monospace;text-align: right;color: #303fba">In [ ]:</span><pre style="background: #f7f7f7;border: 1px solid #cfcfcf;padding: .4em;margin-bottom: 0;margin-top: 0;border-radius: 2px;min-height: .85em" class=" language-null"><code class=" language-null"># グラフをHTMLファイルとして保存
+fig.write_html("oled_plotly_yasuda.html")
+print("グラフをoled_plotly_yasuda.htmlとして保存しました。")</code></pre><div style="margin: 1em 0px 0.5em;"></div></div></div></div>
